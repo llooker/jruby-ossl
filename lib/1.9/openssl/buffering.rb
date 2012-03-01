@@ -19,6 +19,18 @@
 #
 # This module allows an OpenSSL::SSL::SSLSocket to behave like an IO.
 
+class String
+  unless method_defined? :byteslice
+    ##
+    # Does the same thing as String#slice but
+    # operates on bytes instead of characters.
+    #
+    def byteslice(*args)
+      unpack('C*').slice(*args).pack('C*')
+    end
+  end
+end
+
 module OpenSSL::Buffering
   include Enumerable
 
@@ -308,11 +320,11 @@ module OpenSSL::Buffering
     @wbuffer = "" unless defined? @wbuffer
     @wbuffer << s
     @sync ||= false
-    if @sync or @wbuffer.size > BLOCK_SIZE or idx = @wbuffer.rindex($/)
-      remain = idx ? idx + $/.size : @wbuffer.length
+    if @sync or @wbuffer.bytesize > BLOCK_SIZE or idx = @wbuffer.rindex($/)
+      remain = idx ? idx + $/.size : @wbuffer.bytesize
       nwritten = 0
       while remain > 0
-        str = @wbuffer[nwritten,remain]
+        str = @wbuffer.byteslice(nwritten,remain)
         begin
           nwrote = syswrite(str)
         rescue Errno::EAGAIN
@@ -333,7 +345,7 @@ module OpenSSL::Buffering
 
   def write(s)
     do_write(s)
-    s.length
+    s.bytesize
   end
 
   ##
