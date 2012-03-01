@@ -333,7 +333,7 @@ module OpenSSL::Buffering
         remain -= nwrote
         nwritten += nwrote
       end
-      @wbuffer[0,nwritten] = ""
+      @wbuffer = @wbuffer.byteslice(nwritten, @wbuffer.bytesize - nwritten)
     end
   end
 
