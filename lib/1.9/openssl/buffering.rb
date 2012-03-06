@@ -19,17 +19,6 @@
 #
 # This module allows an OpenSSL::SSL::SSLSocket to behave like an IO.
 
-class String
-  unless method_defined? :byteslice
-    ##
-    # Does the same thing as String#slice but
-    # operates on bytes instead of characters.
-    #
-    def byteslice(*args)
-      unpack('C*').slice(*args).pack('C*')
-    end
-  end
-end
 
 module OpenSSL::Buffering
   include Enumerable
@@ -316,15 +305,52 @@ module OpenSSL::Buffering
   # Writes +s+ to the buffer.  When the buffer is full or #sync is true the
   # buffer is flushed to the underlying socket.
 
+  ## without real byteslize implementation, this takes too long. wait for 1.9.3 (or actual fix https://jira.codehaus.org/browse/JRUBY-6515)
+  # def do_write(s)
+  #     @wbuffer = "" unless defined? @wbuffer
+  #     @wbuffer << s
+  #     @sync ||= false
+  #     if @sync or @wbuffer.bytesize > BLOCK_SIZE or idx = @wbuffer.rindex($/)
+  #       remain = idx ? idx + $/.size : @wbuffer.bytesize
+  #       nwritten = 0
+  #       while remain > 0
+  #         str = @wbuffer.byteslice(nwritten,remain)
+  #         begin
+  #           nwrote = syswrite(str)
+  #         rescue Errno::EAGAIN
+  #           retry
+  #         end
+  #         remain -= nwrote
+  #         nwritten += nwrote
+  #       end
+  #       @wbuffer = @wbuffer.byteslice(nwritten, @wbuffer.bytesize - nwritten)
+  #     end
+  #   end
+  # class String
+  #     unless method_defined? :byteslice
+  #       ##
+  #       # Does the same thing as String#slice but
+  #       # operates on bytes instead of characters.
+  #       #
+  #       def byteslice(*args)
+  #         unpack('C*').slice(*args).pack('C*')
+  #       end
+  #     end
+  #   end
+  
   def do_write(s)
+    # the llooker way to ensure the loop below actually works - force everything into single-byte chars.
+    s = s.dup if s.frozen?
+    s.force_encoding("ASCII-8BIT")
+    
     @wbuffer = "" unless defined? @wbuffer
     @wbuffer << s
     @sync ||= false
-    if @sync or @wbuffer.bytesize > BLOCK_SIZE or idx = @wbuffer.rindex($/)
-      remain = idx ? idx + $/.size : @wbuffer.bytesize
+    if @sync or @wbuffer.size > BLOCK_SIZE or idx = @wbuffer.rindex($/)
+      remain = idx ? idx + $/.size : @wbuffer.length
       nwritten = 0
       while remain > 0
-        str = @wbuffer.byteslice(nwritten,remain)
+        str = @wbuffer[nwritten,remain]
         begin
           nwrote = syswrite(str)
         rescue Errno::EAGAIN
@@ -333,9 +359,10 @@ module OpenSSL::Buffering
         remain -= nwrote
         nwritten += nwrote
       end
-      @wbuffer = @wbuffer.byteslice(nwritten, @wbuffer.bytesize - nwritten)
+      @wbuffer[0,nwritten] = ""
     end
   end
+
 
   public
 
