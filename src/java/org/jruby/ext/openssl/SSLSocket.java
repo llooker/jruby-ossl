@@ -142,9 +142,9 @@ public class SSLSocket extends RubyObject {
     private void ossl_ssl_setup() throws NoSuchAlgorithmException, KeyManagementException, IOException {
         if(null == engine) {
             Socket socket = getSocketChannel().socket();
-            String peerHost = socket.getInetAddress().getHostName();
-            int peerPort = socket.getPort();
-            engine = rubyCtx.createSSLEngine(peerHost, peerPort);
+            //String peerHost = socket.getInetAddress().getHostName();
+            //int peerPort = socket.getPort();
+            engine = rubyCtx.createSSLEngine();
             SSLSession session = engine.getSession();
             peerNetData = ByteBuffer.allocate(session.getPacketBufferSize());
             peerAppData = ByteBuffer.allocate(session.getApplicationBufferSize());		

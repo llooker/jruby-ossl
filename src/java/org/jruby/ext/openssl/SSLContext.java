@@ -379,8 +379,8 @@ public class SSLContext extends RubyObject {
     }
 
     // should keep SSLContext as a member for introducin SSLSession. later...
-    SSLEngine createSSLEngine(String peerHost, int peerPort) throws NoSuchAlgorithmException, KeyManagementException {
-        SSLEngine engine = internalCtx.getSSLContext().createSSLEngine(peerHost, peerPort);
+    SSLEngine createSSLEngine() throws NoSuchAlgorithmException, KeyManagementException {
+        SSLEngine engine = internalCtx.getSSLContext().createSSLEngine();
         engine.setEnabledCipherSuites(getCipherSuites(engine));
         engine.setEnabledProtocols(getEnabledProtocols(engine));
         return engine;
